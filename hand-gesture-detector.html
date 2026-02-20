@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HANDSPEAK — Gesture Recognition</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00ff88;
+    --accent2: #ff3366;
+    --accent3: #ffcc00;
+    --text: #e8e8f0;
+    --muted: #555570;
+    --glow: 0 0 20px rgba(0,255,136,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .logo span { color: var(--accent2); }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+  }
+  .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  main {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    height: calc(100vh - 73px);
+  }
+
+  /* Camera section */
+  .camera-section {
+    position: relative;
+    padding: 24px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .video-container {
+    position: relative;
+    flex: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #050508;
+    border: 1px solid var(--border);
+  }
+
+  #videoElement {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    display: block;
+  }
+
+  #canvasOverlay {
+    position: absolute;
+    inset: 0;
+    transform: scaleX(-1);
+    pointer-events: none;
+  }
+
+  .no-camera {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--muted);
+  }
+
+  .no-camera .icon { font-size: 4rem; }
+  .no-camera p { font-size: 0.85rem; text-align: center; max-width: 200px; line-height: 1.6; }
+
+  /* Gesture overlay */
+  .gesture-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 28px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    min-width: 200px;
+    transition: all 0.2s;
+    box-shadow: var(--glow);
+  }
+
+  .gesture-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    line-height: 1;
+  }
+
+  .gesture-emoji {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .confidence-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.2s;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { border-color: var(--accent); color: var(--accent); }
+  .btn.primary:hover { background: var(--accent); color: #000; }
+
+  /* Sidebar */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: none;
+  }
+
+  .tab-content.active { display: block; }
+  .tab-content::-webkit-scrollbar { width: 4px; }
+  .tab-content::-webkit-scrollbar-track { background: transparent; }
+  .tab-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Gesture cards */
+  .section-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  .gesture-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .gesture-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .gesture-card.detected {
+    border-color: var(--accent);
+    background: rgba(0,255,136,0.05);
+    box-shadow: 0 0 12px rgba(0,255,136,0.15);
+  }
+
+  .gesture-card.recent {
+    border-color: var(--accent3);
+    background: rgba(255,204,0,0.05);
+  }
+
+  .gc-emoji { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+  .gc-name { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .gesture-card.detected .gc-name { color: var(--accent); }
+
+  /* Log */
+  .log-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+
+  .log-time { color: var(--muted); font-size: 0.65rem; min-width: 60px; }
+  .log-emoji { font-size: 1.2rem; }
+  .log-name { color: var(--text); }
+  .log-conf { margin-left: auto; color: var(--muted); font-size: 0.65rem; }
+
+  /* Stats */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .stat-label { color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; }
+  .stat-value { color: var(--accent); font-size: 1rem; }
+
+  /* Landmark dots */
+  .landmark { fill: var(--accent); }
+  .landmark-line { stroke: rgba(0,255,136,0.5); stroke-width: 2; }
+  .landmark-thumb { fill: var(--accent2); }
+
+  /* Info tooltip */
+  .tooltip {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    backdrop-filter: blur(10px);
+  }
+
+  .fps-counter {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes detected-flash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .gesture-overlay.flash { animation: detected-flash 0.2s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">HAND<span>SPEAK</span></div>
+  <div class="status-pill">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Camera Off</span>
+  </div>
+</header>
+
+<main>
+  <div class="camera-section">
+    <div class="video-container" id="videoContainer">
+      <video id="videoElement" autoplay playsinline muted></video>
+      <canvas id="canvasOverlay"></canvas>
+      <div class="no-camera" id="noCameraMsg">
+        <div class="icon">🖐</div>
+        <p>Click "Start Camera" to begin gesture detection</p>
+      </div>
+      <div class="tooltip" id="tooltipInfo" style="display:none">LIVE DETECTION</div>
+      <div class="fps-counter" id="fpsCounter" style="display:none">-- FPS</div>
+      <div class="gesture-overlay" id="gestureOverlay" style="display:none">
+        <span class="gesture-emoji" id="gestureEmoji">🖐</span>
+        <div class="gesture-name" id="gestureName">—</div>
+        <div class="confidence-bar"><div class="confidence-fill" id="confidenceFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="startBtn" onclick="toggleCamera()">▶ START CAMERA</button>
+      <button class="btn" id="clearBtn" onclick="clearLog()">CLEAR LOG</button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="tab active" onclick="switchTab('gestures', this)">Gestures</div>
+      <div class="tab" onclick="switchTab('log', this)">Log</div>
+      <div class="tab" onclick="switchTab('stats', this)">Stats</div>
+    </div>
+
+    <div class="tab-content active" id="tab-gestures">
+      <div class="section-title">Numbers</div>
+      <div class="gesture-grid" id="numberGrid"></div>
+      <div class="section-title">Signs</div>
+      <div class="gesture-grid" id="signGrid"></div>
+      <div class="section-title">Expressions</div>
+      <div class="gesture-grid" id="expressionGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-log">
+      <div class="section-title">Detection History</div>
+      <div id="logContainer"></div>
+    </div>
+
+    <div class="tab-content" id="tab-stats">
+      <div class="section-title">Session Stats</div>
+      <div class="stat-row"><span class="stat-label">Total Detections</span><span class="stat-value" id="statTotal">0</span></div>
+      <div class="stat-row"><span class="stat-label">Most Common</span><span class="stat-value" id="statCommon">—</span></div>
+      <div class="stat-row"><span class="stat-label">Session Time</span><span class="stat-value" id="statTime">00:00</span></div>
+      <div class="stat-row"><span class="stat-label">Avg Confidence</span><span class="stat-value" id="statConf">—</span></div>
+      <div class="stat-row"><span class="stat-label">Unique Gestures</span><span class="stat-value" id="statUnique">0</span></div>
+    </div>
+  </div>
+</main>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466862/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+// ============ GESTURE DEFINITIONS ============
+const GESTURES = {
+  numbers: [
+    { id: 'zero',  name: 'Zero',  emoji: '0️⃣', desc: '0' },
+    { id: 'one',   name: 'One',   emoji: '1️⃣', desc: '1' },
+    { id: 'two',   name: 'Two',   emoji: '2️⃣', desc: '2' },
+    { id: 'three', name: 'Three', emoji: '3️⃣', desc: '3' },
+    { id: 'four',  name: 'Four',  emoji: '4️⃣', desc: '4' },
+    { id: 'five',  name: 'Five',  emoji: '5️⃣', desc: '5' },
+  ],
+  signs: [
+    { id: 'thumbsup',   name: 'Thumbs Up',   emoji: '👍' },
+    { id: 'thumbsdown', name: 'Thumbs Down', emoji: '👎' },
+    { id: 'peace',      name: 'Peace',       emoji: '✌️' },
+    { id: 'rock',       name: 'Rock On',     emoji: '🤘' },
+    { id: 'ok',         name: 'OK Sign',     emoji: '👌' },
+    { id: 'stop',       name: 'Stop',        emoji: '🛑' },
+    { id: 'point',      name: 'Pointing',    emoji: '👆' },
+    { id: 'call',       name: 'Call Me',     emoji: '🤙' },
+  ],
+  expressions: [
+    { id: 'fist',       name: 'Fist',        emoji: '✊' },
+    { id: 'openhand',   name: 'Open Hand',   emoji: '🖐' },
+    { id: 'pinch',      name: 'Pinch',       emoji: '🤌' },
+    { id: 'gun',        name: 'Finger Gun',  emoji: '🔫' },
+    { id: 'heart',      name: 'Heart',       emoji: '🤞' },
+    { id: 'vulcan',     name: 'Vulcan',      emoji: '🖖' },
+  ]
+};
+
+// ============ STATE ============
+let cameraRunning = false;
+let hands = null;
+let camera = null;
+let currentGesture = null;
+let lastGesture = null;
+let gestureLock = 0;
+let detectionLog = [];
+let stats = { total: 0, map: {}, confSum: 0, start: null };
+let frameCount = 0, fpsTimer = 0, fps = 0;
+let allGestureIds = [];
+
+// ============ INIT UI ============
+function buildGrid(containerId, gestures) {
+  const grid = document.getElementById(containerId);
+  gestures.forEach(g => {
+    allGestureIds.push(g.id);
+    const card = document.createElement('div');
+    card.className = 'gesture-card';
+    card.id = 'card-' + g.id;
+    card.innerHTML = `<span class="gc-emoji">${g.emoji}</span><span class="gc-name">${g.name}</span>`;
+    grid.appendChild(card);
+  });
+}
+
+buildGrid('numberGrid', GESTURES.numbers);
+buildGrid('signGrid', GESTURES.signs);
+buildGrid('expressionGrid', GESTURES.expressions);
+
+// All gestures flat
+const ALL_GESTURES = [...GESTURES.numbers, ...GESTURES.signs, ...GESTURES.expressions];
+const gestureById = {};
+ALL_GESTURES.forEach(g => gestureById[g.id] = g);
+
+// ============ CAMERA TOGGLE ============
+async function toggleCamera() {
+  if (!cameraRunning) {
+    await startCamera();
+  } else {
+    stopCamera();
+  }
+}
+
+async function startCamera() {
+  const video = document.getElementById('videoElement');
+  const canvas = document.getElementById('canvasOverlay');
+
+  // Init MediaPipe Hands
+  hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}` });
+  hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.5 });
+  hands.onResults(onResults);
+
+  // Camera
+  camera = new Camera(video, {
+    onFrame: async () => {
+      if (hands) await hands.send({ image: video });
+      frameCount++;
+      const now = performance.now();
+      if (now - fpsTimer > 1000) {
+        fps = Math.round(frameCount * 1000 / (now - fpsTimer));
+        fpsTimer = now; frameCount = 0;
+        document.getElementById('fpsCounter').textContent = fps + ' FPS';
+      }
+    },
+    width: 1280, height: 720
+  });
+
+  await camera.start();
+
+  // Resize canvas
+  video.addEventListener('loadeddata', () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  });
+
+  cameraRunning = true;
+  document.getElementById('noCameraMsg').style.display = 'none';
+  document.getElementById('gestureOverlay').style.display = 'block';
+  document.getElementById('tooltipInfo').style.display = 'block';
+  document.getElementById('fpsCounter').style.display = 'block';
+  document.getElementById('statusDot').classList.add('active');
+  document.getElementById('statusText').textContent = 'Live';
+  document.getElementById('startBtn').textContent = '⏹ STOP CAMERA';
+  stats.start = Date.now();
+  updateTimer();
+}
+
+function stopCamera() {
+  if (camera) { camera.stop(); camera = null; }
+  if (hands) { hands.close(); hands = null; }
+  cameraRunning = false;
+
+  const canvas = document.getElementById('canvasOverlay');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  document.getElementById('noCameraMsg').style.display = 'flex';
+  document.getElementById('gestureOverlay').style.display = 'none';
+  document.getElementById('tooltipInfo').style.display = 'none';
+  document.getElementById('fpsCounter').style.display = 'none';
+  document.getElementById('statusDot').classList.remove('active');
+  document.getElementById('statusText').textContent = 'Camera Off';
+  document.getElementById('startBtn').textContent = '▶ START CAMERA';
+}
+
+// ============ GESTURE RECOGNITION ============
+function getFingerStates(landmarks) {
+  const tips = [4, 8, 12, 16, 20];
+  const pips = [3, 6, 10, 14, 18];
+  
+  // Is each finger extended?
+  const ext = [];
+  
+  // Thumb: compare x instead of y (horizontal finger)
+  const thumbTip = landmarks[4];
+  const thumbMcp = landmarks[2];
+  const wrist = landmarks[0];
+  const isLeftHand = thumbTip.x > landmarks[17].x; // rough estimate
+  ext[0] = isLeftHand ? thumbTip.x < thumbMcp.x - 0.02 : thumbTip.x > thumbMcp.x + 0.02;
+  
+  // Other fingers: tip y < pip y means extended (higher on screen = smaller y)
+  for (let i = 1; i < 5; i++) {
+    ext[i] = landmarks[tips[i]].y < landmarks[pips[i]].y - 0.02;
+  }
+  
+  return ext;
+}
+
+function detectGesture(landmarks) {
+  const ext = getFingerStates(landmarks);
+  const [thumb, index, middle, ring, pinky] = ext;
+
+  const L = landmarks;
+
+  // Helper: distance between two landmarks
+  const dist = (a, b) => Math.hypot(L[a].x - L[b].x, L[a].y - L[b].y);
+
+  // Numbers
+  if (!thumb && !index && !middle && !ring && !pinky) return { id: 'fist', conf: 0.95 };
+  if (!thumb && index && !middle && !ring && !pinky) return { id: 'one', conf: 0.93 };
+  if (!thumb && index && middle && !ring && !pinky) return { id: 'two', conf: 0.92 };
+  if (!thumb && index && middle && ring && !pinky) return { id: 'three', conf: 0.90 };
+  if (!thumb && index && middle && ring && pinky) return { id: 'four', conf: 0.90 };
+  if (thumb && index && middle && ring && pinky) return { id: 'five', conf: 0.95 };
+
+  // Zero: all fingers curved touching thumb
+  if (!index && !middle && !ring && !pinky && dist(4, 8) < 0.07) return { id: 'zero', conf: 0.88 };
+
+  // Thumbs up
+  if (thumb && !index && !middle && !ring && !pinky && L[4].y < L[3].y) return { id: 'thumbsup', conf: 0.92 };
+  
+  // Thumbs down
+  if (thumb && !index && !middle && !ring && !pinky && L[4].y > L[3].y) return { id: 'thumbsdown', conf: 0.90 };
+
+  // Peace / V sign
+  if (!thumb && index && middle && !ring && !pinky) return { id: 'peace', conf: 0.93 };
+
+  // Rock on: index + pinky up, middle + ring down
+  if (!thumb && index && !middle && !ring && pinky) return { id: 'rock', conf: 0.92 };
+
+  // Call me: thumb + pinky
+  if (thumb && !index && !middle && !ring && pinky) return { id: 'call', conf: 0.90 };
+
+  // OK sign: thumb and index close, others extended
+  if (dist(4, 8) < 0.06 && middle && ring && pinky) return { id: 'ok', conf: 0.88 };
+
+  // Stop / open hand
+  if (thumb && index && middle && ring && pinky) return { id: 'stop', conf: 0.85 };
+
+  // Pointing up: only index
+  if (!thumb && index && !middle && !ring && !pinky) return { id: 'point', conf: 0.90 };
+
+  // Vulcan: index+middle up, ring+pinky up, gap between
+  if (!thumb && index && middle && ring && pinky) {
+    const gap = Math.abs(L[12].x - L[16].x);
+    if (gap > 0.06) return { id: 'vulcan', conf: 0.85 };
+  }
+
+  // Finger gun: thumb + index
+  if (thumb && index && !middle && !ring && !pinky) return { id: 'gun', conf: 0.87 };
+
+  // Pinch: thumb and index close
+  if (dist(4, 8) < 0.05 && !middle && !ring && !pinky) return { id: 'pinch', conf: 0.88 };
+
+  // Heart (cross fingers)
+  if (!thumb && index && middle && !ring && !pinky) {
+    const cross = Math.abs(L[8].x - L[12].x) < 0.04;
+    if (cross) return { id: 'heart', conf: 0.83 };
+  }
+
+  // Open hand
+  if (thumb && index && middle && ring && pinky) return { id: 'openhand', conf: 0.85 };
+
+  return null;
+}
+
+// ============ MEDIAPIPE RESULTS ============
+function onResults(results) {
+  const canvas = document.getElementById('canvasOverlay');
+  const video = document.getElementById('videoElement');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let detected = null;
+
+  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+      const lm = results.multiHandLandmarks[i];
+      drawHandLandmarks(ctx, lm, canvas.width, canvas.height);
+      
+      const g = detectGesture(lm);
+      if (g && (!detected || g.conf > detected.conf)) {
+        detected = g;
+      }
+    }
+  }
+
+  updateGestureDisplay(detected);
+}
+
+function drawHandLandmarks(ctx, landmarks, w, h) {
+  const CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],
+    [0,5],[5,6],[6,7],[7,8],
+    [5,9],[9,10],[10,11],[11,12],
+    [9,13],[13,14],[14,15],[15,16],
+    [13,17],[0,17],[17,18],[18,19],[19,20]
+  ];
+
+  // Draw connections
+  ctx.lineWidth = 2;
+  CONNECTIONS.forEach(([a, b]) => {
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,255,136,0.5)';
+    ctx.moveTo(landmarks[a].x * w, landmarks[a].y * h);
+    ctx.lineTo(landmarks[b].x * w, landmarks[b].y * h);
+    ctx.stroke();
+  });
+
+  // Draw dots
+  landmarks.forEach((lm, i) => {
+    ctx.beginPath();
+    const isThumb = i >= 1 && i <= 4;
+    ctx.fillStyle = isThumb ? '#ff3366' : '#00ff88';
+    ctx.shadowColor = isThumb ? '#ff3366' : '#00ff88';
+    ctx.shadowBlur = 6;
+    ctx.arc(lm.x * w, lm.y * h, i === 0 ? 6 : 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+// ============ DISPLAY UPDATE ============
+let prevCardId = null;
+
+function updateGestureDisplay(detected) {
+  const overlay = document.getElementById('gestureOverlay');
+  const nameEl = document.getElementById('gestureName');
+  const emojiEl = document.getElementById('gestureEmoji');
+  const fillEl = document.getElementById('confidenceFill');
+
+  if (detected) {
+    const g = gestureById[detected.id];
+    if (!g) return;
+
+    nameEl.textContent = g.name.toUpperCase();
+    emojiEl.textContent = g.emoji;
+    fillEl.style.width = (detected.conf * 100) + '%';
+
+    // Highlight card
+    if (prevCardId && prevCardId !== detected.id) {
+      const prev = document.getElementById('card-' + prevCardId);
+      if (prev) prev.classList.remove('detected');
+    }
+    const card = document.getElementById('card-' + detected.id);
+    if (card) card.classList.add('detected');
+    prevCardId = detected.id;
+
+    // Log new gesture
+    if (detected.id !== lastGesture) {
+      overlay.classList.add('flash');
+      setTimeout(() => overlay.classList.remove('flash'), 200);
+      addLog(g, detected.conf);
+      updateStats(g, detected.conf);
+      lastGesture = detected.id;
+    }
+
+  } else {
+    nameEl.textContent = 'NO HAND';
+    emojiEl.textContent = '—';
+    fillEl.style.width = '0%';
+    lastGesture = null;
+    if (prevCardId) {
+      const prev = document.getElementById('card-' + prevCardId);
+      if (prev) prev.classList.remove('detected');
+      prevCardId = null;
+    }
+  }
+}
+
+// ============ LOG ============
+function addLog(g, conf) {
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const item = document.createElement('div');
+  item.className = 'log-item';
+  item.innerHTML = `
+    <span class="log-time">${time}</span>
+    <span class="log-emoji">${g.emoji}</span>
+    <span class="log-name">${g.name}</span>
+    <span class="log-conf">${Math.round(conf * 100)}%</span>
+  `;
+  const container = document.getElementById('logContainer');
+  container.insertBefore(item, container.firstChild);
+  
+  // Keep max 50 log items
+  while (container.children.length > 50) container.removeChild(container.lastChild);
+}
+
+function clearLog() {
+  document.getElementById('logContainer').innerHTML = '';
+}
+
+// ============ STATS ============
+function updateStats(g, conf) {
+  stats.total++;
+  stats.confSum += conf;
+  stats.map[g.id] = (stats.map[g.id] || 0) + 1;
+
+  document.getElementById('statTotal').textContent = stats.total;
+  
+  const sorted = Object.entries(stats.map).sort((a, b) => b[1] - a[1]);
+  if (sorted.length) {
+    const top = gestureById[sorted[0][0]];
+    document.getElementById('statCommon').textContent = top ? top.emoji + ' ' + top.name : '—';
+  }
+
+  document.getElementById('statConf').textContent = Math.round(stats.confSum / stats.total * 100) + '%';
+  document.getElementById('statUnique').textContent = Object.keys(stats.map).length;
+}
+
+function updateTimer() {
+  if (!stats.start) return;
+  const elapsed = Math.floor((Date.now() - stats.start) / 1000);
+  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  document.getElementById('statTime').textContent = `${m}:${s}`;
+  setTimeout(updateTimer, 1000);
+}
+
+// ============ TABS ============
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>
