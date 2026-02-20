@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>HANDSPEAK PRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030308;--s1:#08080f;--s2:#0d0d1a;--border:#1a1a30;--a:#00e5ff;--a2:#ff2d6b;--a3:#ffe500;--a4:#00ff88;--text:#dde4f0;--muted:#4a4a70;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;overflow:hidden;}
+#app{display:flex;flex-direction:column;height:100dvh;width:100vw;}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(3,3,8,0.97);z-index:20;}
+.logo{font-family:'Orbitron',monospace;font-size:clamp(0.85rem,3.5vw,1.3rem);font-weight:900;letter-spacing:0.08em;background:linear-gradient(135deg,var(--a),var(--a4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo sup{font-size:0.5em;vertical-align:super;}
+.hr{display:flex;align-items:center;gap:6px;}
+.camBtn{display:none;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--a);padding:5px 10px;border-radius:8px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.65rem;letter-spacing:0.08em;color:var(--a);}
+.pill{display:flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border);padding:5px 10px;border-radius:100px;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+.dot.live{background:var(--a4);box-shadow:0 0 6px var(--a4);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+.camwrap{position:relative;flex:1;overflow:hidden;background:#020205;}
+#vid{width:100%;height:100%;object-fit:cover;display:block;}
+#vid.mir{transform:scaleX(-1);}
+#cvs{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+#cvs.mir{transform:scaleX(-1);}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,229,255,0.01) 3px,rgba(0,229,255,0.01) 4px);}
+.cn{position:absolute;width:18px;height:18px;pointer-events:none;}
+.cn.tl{top:8px;left:8px;border-top:2px solid var(--a);border-left:2px solid var(--a);}
+.cn.tr{top:8px;right:8px;border-top:2px solid var(--a);border-right:2px solid var(--a);}
+.cn.bl{bottom:8px;left:8px;border-bottom:2px solid var(--a);border-left:2px solid var(--a);}
+.cn.br{bottom:8px;right:8px;border-bottom:2px solid var(--a);border-right:2px solid var(--a);}
+
+.ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;}
+.ph-ring{width:clamp(80px,22vw,110px);height:clamp(80px,22vw,110px);border-radius:50%;border:2px solid var(--a);display:flex;align-items:center;justify-content:center;font-size:clamp(2rem,10vw,3rem);animation:rp 2.5s infinite;}
+@keyframes rp{0%,100%{box-shadow:0 0 30px rgba(0,229,255,0.2),inset 0 0 20px rgba(0,229,255,0.04);}50%{box-shadow:0 0 60px rgba(0,229,255,0.5),inset 0 0 40px rgba(0,229,255,0.1);}}
+.ph-label{font-family:'Orbitron',monospace;font-size:0.7rem;color:var(--a);letter-spacing:0.15em;}
+.ph-sub{font-size:0.72rem;color:var(--muted);text-align:center;max-width:240px;line-height:1.7;}
+
+#stopBtn{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.8);border:1px solid var(--a2);color:var(--a2);font-family:'Rajdhani',sans-serif;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border-radius:6px;cursor:pointer;display:none;}
+.fps{position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.7);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-family:'Orbitron',monospace;font-size:0.52rem;color:var(--a4);display:none;}
+
+/* DUAL HAND BADGE - main feature */
+.dual-badge{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  background:rgba(3,3,12,0.95);border:1.5px solid var(--a);
+  border-radius:20px;padding:10px 20px;text-align:center;
+  backdrop-filter:blur(16px);min-width:220px;
+  box-shadow:0 0 30px rgba(0,229,255,0.2);display:none;
+  transition:border-color 0.15s;
+}
+.dual-badge.nh{border-color:var(--muted);}
+.dual-badge.nummode{border-color:var(--a3);box-shadow:0 0 30px rgba(255,229,0,0.3);}
+
+/* Two hand slots */
+.hands-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px;}
+.hand-slot{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:60px;}
+.hs-label{font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-family:'Orbitron',monospace;}
+.hs-emoji{font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;}
+.hs-name{font-size:0.55rem;color:var(--a);font-family:'Orbitron',monospace;letter-spacing:0.05em;}
+.hand-divider{width:1px;height:40px;background:var(--border);flex-shrink:0;}
+
+/* Combined result */
+.combined{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(1.4rem,6vw,2rem);
+  font-weight:900;color:var(--a);
+  letter-spacing:0.1em;line-height:1;
+  margin-bottom:2px;
+}
+.combined.num{color:var(--a3);text-shadow:0 0 20px rgba(255,229,0,0.4);}
+.combined.sign{color:var(--a4);}
+.csub{font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;}
+.cb{width:100%;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-top:6px;}
+.cf{height:100%;border-radius:2px;transition:width 0.1s;background:var(--a);box-shadow:0 0 5px var(--a);}
+.cl{display:flex;justify-content:space-between;margin-top:2px;}
+.cl span{font-size:0.52rem;color:var(--muted);}
+
+.bottom{flex-shrink:0;background:var(--s1);border-top:1px solid var(--border);max-height:36vh;display:flex;flex-direction:column;}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:9px 2px;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;font-family:'Rajdhani',sans-serif;font-weight:700;}
+.tab.on{color:var(--a);border-bottom-color:var(--a);}
+.pb{flex:1;overflow-y:auto;padding:8px 12px;-webkit-overflow-scrolling:touch;}
+.pb::-webkit-scrollbar{display:none;}
+.pane{display:none;}.pane.on{display:block;}
+
+.cat{font-size:0.55rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin:7px 0 4px;}.cat:first-child{margin-top:0;}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+.chip{display:flex;align-items:center;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:100px;padding:3px 8px;font-size:0.58rem;color:var(--muted);transition:all 0.15s;white-space:nowrap;font-weight:600;}
+.chip.on{border-color:var(--a);color:var(--a);background:rgba(0,229,255,0.08);box-shadow:0 0 7px rgba(0,229,255,0.12);}
+.chip.numchip.on{border-color:var(--a3);color:var(--a3);background:rgba(255,229,0,0.06);}
+.ce{font-size:0.85rem;}
+
+/* Number guide grid */
+.numguide{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;}
+.ng{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px;text-align:center;font-size:0.55rem;color:var(--muted);}
+.ng .ne{font-size:1rem;display:block;}
+.ng .nn{font-size:0.5rem;letter-spacing:0.05em;}
+
+.li{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);}
+.lt{color:var(--muted);font-size:0.55rem;min-width:46px;}
+.le{font-size:0.9rem;}
+.ln{font-size:0.67rem;font-weight:600;}
+.lbar{width:26px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-left:auto;}
+.lbf{height:100%;background:var(--a4);border-radius:2px;}
+.lc{color:var(--muted);font-size:0.55rem;min-width:26px;text-align:right;}
+
+.sr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.sl{font-size:0.6rem;color:var(--muted);font-weight:600;}
+.sv{font-size:0.85rem;color:var(--a);font-family:'Orbitron',monospace;font-weight:700;}
+
+@keyframes pop{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.06)}100%{transform:translateX(-50%) scale(1)}}
+.pop{animation:pop 0.2s ease;}
+
+/* How-to guide */
+.guide-box{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:0.6rem;line-height:1.7;color:var(--muted);}
+.guide-box strong{color:var(--a);font-size:0.65rem;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">HANDSPEAK<sup>PRO</sup></div>
+    <div class="hr">
+      <div class="camBtn" id="camBtn" onclick="flipCam()">🔄 <span id="camLbl">FRONT</span></div>
+      <div class="pill"><div class="dot" id="dot"></div><span id="stxt">OFF</span></div>
+    </div>
+  </header>
+
+  <div class="camwrap">
+    <video id="vid" autoplay playsinline muted></video>
+    <canvas id="cvs"></canvas>
+    <div class="scan"></div>
+    <div class="cn tl"></div><div class="cn tr"></div>
+    <div class="cn bl"></div><div class="cn br"></div>
+
+    <div class="ph" id="ph" onclick="startCam()">
+      <div class="ph-ring">🖐</div>
+      <div class="ph-label">TAP TO START</div>
+      <p class="ph-sub">Ultra-precise detection · 30+ gestures<br>Dual-hand numbers 0–100 · Front &amp; back cam</p>
+    </div>
+
+    <button id="stopBtn" onclick="stopCam()">✕ STOP</button>
+    <div class="fps" id="fps">-- FPS</div>
+
+    <div class="dual-badge nh" id="badge">
+      <!-- Single hand or combined result at top -->
+      <div class="combined" id="combined">—</div>
+      <div class="csub" id="csub">Show your hand to the camera</div>
+
+      <!-- Two hand display row (shown when 2 hands) -->
+      <div class="hands-row" id="handsRow" style="display:none">
+        <div class="hand-slot">
+          <span class="hs-label">LEFT</span>
+          <span class="hs-emoji" id="leftEmoji">—</span>
+          <span class="hs-name" id="leftName"></span>
+        </div>
+        <div class="hand-divider"></div>
+        <div class="hand-slot">
+          <span class="hs-label">RIGHT</span>
+          <span class="hs-emoji" id="rightEmoji">—</span>
+          <span class="hs-name" id="rightName"></span>
+        </div>
+      </div>
+
+      <div class="cb"><div class="cf" id="cf" style="width:0%"></div></div>
+      <div class="cl"><span>CONFIDENCE</span><span id="cp">0%</span></div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="tabs">
+      <div class="tab on" onclick="sw('g',this)">Signs</div>
+      <div class="tab" onclick="sw('n',this)">Numbers</div>
+      <div class="tab" onclick="sw('l',this)">History</div>
+      <div class="tab" onclick="sw('s',this)">Stats</div>
+    </div>
+    <div class="pb">
+
+      <!-- SIGNS TAB -->
+      <div class="pane on" id="pg">
+        <div class="guide-box">
+          <strong>💡 Tip:</strong> Show 1 hand for signs · Show 2 hands for combined numbers (e.g. left=1 + right=2 = <strong>12</strong>)
+        </div>
+        <div class="cat">Numbers (1 hand)</div>
+        <div class="chips" id="c-num"></div>
+        <div class="cat">Hand Signs</div>
+        <div class="chips" id="c-s"></div>
+        <div class="cat">Gestures</div>
+        <div class="chips" id="c-g"></div>
+      </div>
+
+      <!-- NUMBERS TAB -->
+      <div class="pane" id="pn">
+        <div class="guide-box">
+          <strong>📐 Dual-Hand Numbers:</strong><br>
+          Left hand = <strong>TENS digit</strong> · Right hand = <strong>UNITS digit</strong><br>
+          Example: Left shows 3, Right shows 7 = <strong>37</strong><br>
+          Both show 0 = <strong>0</strong> · Left=1, Right=0 = <strong>10</strong><br>
+          Max: Left=9, Right=9 = <strong>99</strong> · Left=10, Right=0 = <strong>100</strong>
+        </div>
+        <div class="cat">Single Hand (0–10)</div>
+        <div class="numguide" id="ng"></div>
+        <div class="cat">Try These Combinations</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:0.6rem;color:var(--muted)">
+          <div>Left 1 + Right 5 = <span style="color:var(--a3);font-weight:700">15</span></div>
+          <div>Left 2 + Right 3 = <span style="color:var(--a3);font-weight:700">23</span></div>
+          <div>Left 4 + Right 0 = <span style="color:var(--a3);font-weight:700">40</span></div>
+          <div>Left 7 + Right 8 = <span style="color:var(--a3);font-weight:700">78</span></div>
+          <div>Left 9 + Right 9 = <span style="color:var(--a3);font-weight:700">99</span></div>
+          <div>Left 10 + Right 0 = <span style="color:var(--a3);font-weight:700">100</span></div>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div class="pane" id="pl"><div id="log"></div></div>
+
+      <!-- STATS TAB -->
+      <div class="pane" id="ps">
+        <div class="sr"><span class="sl">Total Detections</span><span class="sv" id="sTot">0</span></div>
+        <div class="sr"><span class="sl">Highest Number</span><span class="sv" id="sMax" style="color:var(--a3)">—</span></div>
+        <div class="sr"><span class="sl">Most Common</span><span class="sv" id="sCom" style="font-family:'Rajdhani',sans-serif;font-size:0.75rem">—</span></div>
+        <div class="sr"><span class="sl">Avg Confidence</span><span class="sv" id="sAv">—</span></div>
+        <div class="sr"><span class="sl">Session Time</span><span class="sv" id="sTm">00:00</span></div>
+        <div class="sr"><span class="sl">Camera</span><span class="sv" id="sCam" style="font-family:'Rajdhani',sans-serif;font-size:0.7rem">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  GESTURE DATABASE
+// ═══════════════════════════════════════════════════════
+const NUMBERS = [
+  {id:'n0', name:'Zero',  emoji:'0️⃣', desc:'O shape, all fingers curl to thumb'},
+  {id:'n1', name:'One',   emoji:'1️⃣', desc:'Index straight up only'},
+  {id:'n2', name:'Two',   emoji:'2️⃣', desc:'Index + middle up, close together'},
+  {id:'n3', name:'Three', emoji:'3️⃣', desc:'Index + middle + ring up'},
+  {id:'n4', name:'Four',  emoji:'4️⃣', desc:'All 4 fingers, thumb tucked in'},
+  {id:'n5', name:'Five',  emoji:'5️⃣', desc:'Open palm, all fingers spread'},
+  {id:'n6', name:'Six',   emoji:'6️⃣', desc:'Thumb touches pinky, others up'},
+  {id:'n7', name:'Seven', emoji:'7️⃣', desc:'Thumb touches ring, others up'},
+  {id:'n8', name:'Eight', emoji:'8️⃣', desc:'Thumb touches middle, others up'},
+  {id:'n9', name:'Nine',  emoji:'9️⃣', desc:'Thumb touches index, others up'},
+  {id:'n10',name:'Ten',   emoji:'🔟', desc:'Fist then flick OR show both hands 10+0'},
+];
+const SIGNS = [
+  {id:'thu',name:'Thumbs Up',  emoji:'👍', desc:'Fist, thumb pointing UP'},
+  {id:'thd',name:'Thumbs Down',emoji:'👎', desc:'Fist, thumb pointing DOWN'},
+  {id:'pea',name:'Peace / V',  emoji:'✌️', desc:'Index+middle spread apart (V shape)'},
+  {id:'rok',name:'Rock On',    emoji:'🤘', desc:'Index + pinky up, middle+ring down'},
+  {id:'ok', name:'OK Sign',    emoji:'👌', desc:'Thumb+index circle, 3 fingers up'},
+  {id:'stp',name:'STOP',       emoji:'✋', desc:'All 5 fingers wide open, palm OUT'},
+  {id:'fst',name:'Fist',       emoji:'✊', desc:'All fingers curled TIGHT, no thumb'},
+  {id:'pnt',name:'Pointing',   emoji:'☝️', desc:'Index pointing + thumb OUT to side'},
+  {id:'cal',name:'Call Me',    emoji:'🤙', desc:'Thumb + pinky out, others curled'},
+  {id:'pin',name:'Pinch',      emoji:'🤌', desc:'Thumb+index tips touch, others relaxed open'},
+  {id:'gun',name:'Finger Gun', emoji:'🫵', desc:'Thumb+index L-shape, others curled'},
+  {id:'shk',name:'Shaka',      emoji:'🤙', desc:'Thumb+pinky wide spread (hang loose)'},
+  {id:'wav',name:'Wave',       emoji:'👋', desc:'4 fingers together, thumb out, wrist bent'},
+];
+const GESTURES = [
+  {id:'vul',name:'Vulcan',     emoji:'🖖', desc:'All 5 up, GAP between middle & ring'},
+  {id:'crs',name:'Crossed',    emoji:'🤞', desc:'Index over middle, touching'},
+  {id:'opn',name:'Open Hand',  emoji:'🖐', desc:'All 5 relaxed and spread wide'},
+  {id:'pch',name:'Punch',      emoji:'👊', desc:'Fist forward, knuckles facing camera'},
+];
+
+const ALL=[...NUMBERS,...SIGNS,...GESTURES];
+const byId={};ALL.forEach(g=>byId[g.id]=g);
+
+// Build chips
+const numC=document.getElementById('c-num');
+NUMBERS.forEach(g=>{const c=document.createElement('div');c.className='chip numchip';c.id='ch-'+g.id;c.innerHTML=`<span class="ce">${g.emoji}</span>${g.name}`;numC.appendChild(c);});
+const sigC=document.getElementById('c-s');
+SIGNS.forEach(g=>{const c=document.createElement('div');c.className='chip';c.id='ch-'+g.id;c.innerHTML=`<span class="ce">${g.emoji}</span>${g.name}`;sigC.appendChild(c);});
+const gesC=document.getElementById('c-g');
+GESTURES.forEach(g=>{const c=document.createElement('div');c.className='chip';c.id='ch-'+g.id;c.innerHTML=`<span class="ce">${g.emoji}</span>${g.name}`;gesC.appendChild(c);});
+
+// Number guide
+const ng=document.getElementById('ng');
+NUMBERS.forEach(g=>{const d=document.createElement('div');d.className='ng';d.innerHTML=`<span class="ne">${g.emoji}</span><span class="nn">${g.name}</span>`;ng.appendChild(d);});
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let running=false,mpHands=null,cam=null,front=true;
+let prevChip=null,lastResultKey=null;
+let st={tot:0,map:{},cs:0,start:null,maxNum:-1};
+let fc=0,ft=0;
+
+// Per-hand smoothing
+const VOTE=5,LOCK=3;
+let bufL=[],bufR=[];
+let lockL=[],lockR=[];
+
+// ═══════════════════════════════════════════════════════
+//  CAMERA
+// ═══════════════════════════════════════════════════════
+async function startCam(){
+  document.getElementById('ph').style.display='none';
+  const vid=document.getElementById('vid'),cvs=document.getElementById('cvs');
+
+  mpHands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
+  mpHands.setOptions({
+    maxNumHands:2,
+    modelComplexity:1,
+    minDetectionConfidence:0.82,  // higher = fewer false positives
+    minTrackingConfidence:0.7
+  });
+  mpHands.onResults(onRes);
+
+  cam=new Camera(vid,{
+    onFrame:async()=>{if(mpHands)await mpHands.send({image:vid});fc++;const n=performance.now();if(n-ft>1000){document.getElementById('fps').textContent=Math.round(fc*1000/(n-ft))+' FPS';ft=n;fc=0;}},
+    width:1280,height:720,facingMode:front?'user':'environment'
+  });
+  await cam.start();
+
+  vid.addEventListener('loadeddata',()=>{cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;},{once:true});
+  vid.className=front?'mir':'';
+  cvs.className=front?'mir':'';
+
+  running=true;
+  document.getElementById('stopBtn').style.display='block';
+  document.getElementById('badge').style.display='block';
+  document.getElementById('fps').style.display='block';
+  document.getElementById('camBtn').style.display='flex';
+  document.getElementById('dot').classList.add('live');
+  document.getElementById('stxt').textContent='LIVE';
+  document.getElementById('sCam').textContent=front?'Front Camera':'Back Camera';
+  document.getElementById('camLbl').textContent=front?'FRONT':'BACK';
+  st.start=Date.now();
+  tick();
+}
+
+function stopCam(){
+  if(cam){cam.stop();cam=null;}
+  if(mpHands){mpHands.close();mpHands=null;}
+  running=false;bufL=[];bufR=[];lockL=[];lockR=[];
+  document.getElementById('cvs').getContext('2d').clearRect(0,0,9999,9999);
+  document.getElementById('ph').style.display='flex';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('badge').style.display='none';
+  document.getElementById('fps').style.display='none';
+  document.getElementById('camBtn').style.display='none';
+  document.getElementById('dot').classList.remove('live');
+  document.getElementById('stxt').textContent='OFF';
+  if(prevChip){document.getElementById('ch-'+prevChip)?.classList.remove('on');prevChip=null;}
+}
+
+async function flipCam(){
+  front=!front;stopCam();
+  await new Promise(r=>setTimeout(r,400));
+  await startCam();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROCESS RESULTS
+// ═══════════════════════════════════════════════════════
+function onRes(res){
+  const vid=document.getElementById('vid'),cvs=document.getElementById('cvs');
+  cvs.width=vid.videoWidth||640;cvs.height=vid.videoHeight||480;
+  const ctx=cvs.getContext('2d');
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+
+  // Map hands by side
+  let leftHand=null, rightHand=null;
+
+  if(res.multiHandLandmarks?.length){
+    for(let i=0;i<res.multiHandLandmarks.length;i++){
+      const lm=res.multiHandLandmarks[i];
+      // MediaPipe labels from the camera's perspective
+      // With front camera mirrored: 'Right' from MP = user's Left
+      const mpLabel=res.multiHandedness?.[i]?.label||'Right';
+      // For front cam (mirrored): swap labels; back cam: keep as-is
+      const userLabel=front ? (mpLabel==='Right'?'Left':'Right') : mpLabel;
+
+      drawHand(ctx,lm,cvs.width,cvs.height,userLabel);
+
+      const g=classify(lm);
+      if(g){
+        if(userLabel==='Left') leftHand=g;
+        else rightHand=g;
+      }
+    }
+  }
+
+  // Smooth each hand independently
+  const smoothL=smooth(leftHand, bufL, lockL);
+  const smoothR=smooth(rightHand, bufR, lockR);
+
+  renderResult(smoothL, smoothR);
+}
+
+function smooth(det, voteBuf, lockBuf){
+  if(!det){voteBuf.length=0;lockBuf.length=0;return null;}
+  voteBuf.push(det);
+  if(voteBuf.length>VOTE)voteBuf.shift();
+  const votes={};
+  voteBuf.forEach(d=>{if(!votes[d.id])votes[d.id]={n:0,cs:0};votes[d.id].n++;votes[d.id].cs+=d.conf;});
+  const top=Object.entries(votes).sort((a,b)=>b[1].n-a[1].n)[0];
+  if(!top)return null;
+  const id=top[0], conf=votes[id].cs/votes[id].n;
+  lockBuf.push(id);
+  if(lockBuf.length>LOCK)lockBuf.shift();
+  if(lockBuf.length===LOCK&&lockBuf.every(x=>x===id)) return{id,conf};
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════════════════════
+const BONES=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[0,17],[17,18],[18,19],[19,20]];
+const COLS=['#ff2d6b','#ff2d6b','#ff2d6b','#ff2d6b','#ff2d6b','#00e5ff','#00e5ff','#00e5ff','#00e5ff','#00ff88','#00ff88','#00ff88','#00ff88','#ffe500','#ffe500','#ffe500','#ffe500','#ff8c00','#ff8c00','#ff8c00','#ff8c00'];
+
+function drawHand(ctx,lm,w,h,label){
+  BONES.forEach(([a,b])=>{
+    const g=ctx.createLinearGradient(lm[a].x*w,lm[a].y*h,lm[b].x*w,lm[b].y*h);
+    g.addColorStop(0,COLS[a]+'80');g.addColorStop(1,COLS[b]+'80');
+    ctx.beginPath();ctx.strokeStyle=g;ctx.lineWidth=3;
+    ctx.shadowColor=COLS[b];ctx.shadowBlur=5;
+    ctx.moveTo(lm[a].x*w,lm[a].y*h);ctx.lineTo(lm[b].x*w,lm[b].y*h);ctx.stroke();ctx.shadowBlur=0;
+  });
+  const TIPS=[4,8,12,16,20];
+  lm.forEach((p,i)=>{
+    const c=COLS[i]||'#fff',r=i===0?7:TIPS.includes(i)?5:3.5;
+    ctx.beginPath();ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=8;
+    ctx.arc(p.x*w,p.y*h,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    if(TIPS.includes(i)){ctx.beginPath();ctx.fillStyle='rgba(255,255,255,0.9)';ctx.arc(p.x*w,p.y*h,1.5,0,Math.PI*2);ctx.fill();}
+  });
+  const lx=lm[0].x*w,ly=lm[0].y*h;
+  ctx.fillStyle='rgba(0,0,5,0.7)';ctx.fillRect(lx-24,ly-23,48,14);
+  ctx.fillStyle=label==='Left'?'#ff2d6b':'#00e5ff';
+  ctx.font='bold 9px Orbitron,monospace';ctx.textAlign='center';
+  ctx.fillText(label.toUpperCase(),lx,ly-12);
+}
+
+// ═══════════════════════════════════════════════════════
+//  ULTRA-PRECISE CLASSIFIER
+//  Key principle: each gesture has UNIQUE geometric fingerprint
+// ═══════════════════════════════════════════════════════
+function classify(lm){
+  const L=lm;
+  const d=(a,b)=>Math.hypot(L[a].x-L[b].x,L[a].y-L[b].y);
+
+  // ── FINGER EXTENSION (strict) ──
+  // A finger is EXTENDED only when tip is significantly above both PIP and MCP
+  // Using Y-axis (lower Y = higher on screen = extended up)
+  function isExtended(tip,pip,mcp){
+    return L[tip].y < L[pip].y - 0.03   // tip above pip by threshold
+        && L[tip].y < L[mcp].y + 0.01;  // tip above or near mcp
+  }
+
+  // A finger is FULLY CURLED when tip is below or at pip
+  function isCurled(tip,pip){
+    return L[tip].y > L[pip].y - 0.01;
+  }
+
+  // A finger is TOUCHING thumb (for 6,7,8,9 and OK)
+  function touchThumb(fingerTip){
+    return d(4, fingerTip) < 0.07;
+  }
+
+  // ── THUMB: Use X axis comparison ──
+  // Thumb is extended when tip is far from palm horizontally
+  // Detect which hand: if index MCP (5) is to right of pinky MCP (17) in image space
+  const handFacingRight = L[5].x > L[17].x;
+  // Thumb extended = tip pushed out to the side
+  const thumbExtH = handFacingRight
+    ? L[4].x > L[3].x + 0.02   // thumb tip right of thumb IP
+    : L[4].x < L[3].x - 0.02;
+
+  // Thumb UP/DOWN for thumbsup/thumbsdown
+  const thumbTipAboveWrist = L[4].y < L[0].y - 0.05;
+  const thumbTipBelowWrist = L[4].y > L[0].y + 0.05;
+  const thumbTipAboveMcp   = L[4].y < L[2].y - 0.03;
+
+  const I = isExtended(8,6,5);
+  const M = isExtended(12,10,9);
+  const R = isExtended(16,14,13);
+  const P = isExtended(20,18,17);
+  const T = thumbExtH;
+
+  const iCurl = isCurled(8,6);
+  const mCurl = isCurled(12,10);
+  const rCurl = isCurled(16,14);
+  const pCurl = isCurled(20,18);
+
+  // Distances
+  const TI = d(4,8);   // thumb-index
+  const TM = d(4,12);  // thumb-middle
+  const TR = d(4,16);  // thumb-ring
+  const TP = d(4,20);  // thumb-pinky
+  const IM = d(8,12);  // index-middle spread
+  const MR = d(12,16); // middle-ring spread
+  const IP = d(8,20);  // index-pinky spread
+
+  // Wrist to fingertips (for open hand vs stop vs wave)
+  const W8  = d(0,8);
+  const W12 = d(0,12);
+
+  // Vulcan-specific: gap between middle and ring
+  const vulcanGap = Math.abs(L[12].x - L[16].x);
+
+  // ════════════════════════════════════════
+  //  NUMBERS — Strict fingerprint matching
+  // ════════════════════════════════════════
+
+  // ZERO: All fingers curl to make O with thumb
+  // Thumb is NOT extended horizontally, ALL fingers curled, thumb close to index
+  if(!I && !M && !R && !P && TI < 0.09 && TM < 0.13)
+    return{id:'n0', conf:0.93};
+
+  // ONE: ONLY index extended, all others STRICTLY curled
+  // Distinguished from "point" by thumb position
+  if(I && isCurled(12,10) && isCurled(16,14) && isCurled(20,18) && !T)
+    return{id:'n1', conf:0.96};
+
+  // POINT: Index up WITH thumb extended to side
+  if(I && isCurled(12,10) && isCurled(16,14) && isCurled(20,18) && T)
+    return{id:'pnt', conf:0.92};
+
+  // TWO: Index + middle extended, SPREAD APART (V shape = peace)
+  // Close together = number 2
+  if(I && M && isCurled(16,14) && isCurled(20,18) && !T){
+    // Peace: fingers spread wide apart
+    if(IM > 0.06) return{id:'pea', conf:0.94};
+    // Two: fingers close together
+    return{id:'n2', conf:0.93};
+  }
+
+  // THREE: Index + middle + ring, pinky curled, no thumb
+  if(I && M && R && isCurled(20,18) && !T)
+    return{id:'n3', conf:0.94};
+
+  // FOUR: All 4 fingers up, thumb strictly tucked in (NOT extended)
+  if(I && M && R && P && !T)
+    return{id:'n4', conf:0.95};
+
+  // FIVE (number): All including thumb, fingers CLOSE together (not spread)
+  if(T && I && M && R && P && IP < 0.28 && vulcanGap < 0.07)
+    return{id:'n5', conf:0.91};
+
+  // STOP: All 5 fingers spread WIDE open, palm facing out
+  // Distinguished from five by wider spread and larger wrist distances
+  if(T && I && M && R && P && IP > 0.28)
+    return{id:'stp', conf:0.93};
+
+  // VULCAN: All 5 up but with LARGE gap between middle and ring
+  if(T && I && M && R && P && vulcanGap > 0.07)
+    return{id:'vul', conf:0.95};
+
+  // SIX: Thumb TOUCHES pinky tip, index+middle+ring UP
+  if(I && M && R && !P && TP < 0.07)
+    return{id:'n6', conf:0.90};
+
+  // SEVEN: Thumb TOUCHES ring tip, index+middle+pinky UP
+  if(I && M && !R && P && TR < 0.07)
+    return{id:'n7', conf:0.90};
+
+  // EIGHT: Thumb TOUCHES middle tip, index+ring+pinky UP
+  if(I && !M && R && P && TM < 0.07)
+    return{id:'n8', conf:0.89};
+
+  // NINE: Thumb TOUCHES index tip, middle+ring+pinky UP
+  if(!I && M && R && P && TI < 0.07)
+    return{id:'n9', conf:0.90};
+
+  // TEN: Fist (all curled) + thumb tucked OR both hands
+  // Single hand TEN = ASL 10 = fist with thumb up (similar to thumbs up)
+  // We handle TEN as thumbsup with special case below
+
+  // ════════════════════════════════════════
+  //  SIGNS
+  // ════════════════════════════════════════
+
+  // THUMBS UP: Fist shape (all 4 fingers curled), thumb pointing UP
+  if(!I && !M && !R && !P && thumbTipAboveMcp && thumbTipAboveWrist)
+    return{id:'thu', conf:0.97};
+
+  // THUMBS DOWN: Fist shape, thumb pointing DOWN
+  if(!I && !M && !R && !P && thumbTipBelowWrist)
+    return{id:'thd', conf:0.96};
+
+  // FIST: All strictly curled, thumb alongside fingers (NOT extended horizontally, NOT up/down)
+  if(!I && !M && !R && !P && !T && !thumbTipAboveWrist && !thumbTipBelowWrist)
+    return{id:'fst', conf:0.96};
+
+  // PUNCH: Fist but thumb might be slightly out — detected same as fist
+  // To distinguish punch from fist, we use the knuckle geometry
+  if(!I && !M && !R && !P && TI < 0.12)
+    return{id:'pch', conf:0.85};
+
+  // OK: Thumb-index CIRCLE (touch), middle+ring+pinky UP
+  if(!I && M && R && P && TI < 0.065)
+    return{id:'ok', conf:0.93};
+
+  // PINCH: Thumb+index tips very close, middle+ring+pinky in RELAXED open position (not fully curled)
+  // Different from OK: in pinch, other fingers are NOT fully extended
+  if(TI < 0.06 && !M && !R && !P)
+    return{id:'pin', conf:0.91};
+
+  // ROCK ON: Index + pinky extended, middle + ring STRICTLY curled
+  if(I && isCurled(12,10) && isCurled(16,14) && P && !T)
+    return{id:'rok', conf:0.95};
+
+  // CALL ME (phone): Thumb + pinky extended, index+middle+ring curled
+  if(T && isCurled(8,6) && isCurled(12,10) && isCurled(16,14) && P && TP > 0.25)
+    return{id:'cal', conf:0.93};
+
+  // SHAKA (hang loose): Thumb + pinky VERY WIDE spread, others curled
+  if(T && isCurled(8,6) && isCurled(12,10) && isCurled(16,14) && P && TP > 0.38)
+    return{id:'shk', conf:0.91};
+
+  // FINGER GUN: Thumb up + index pointing, middle+ring+pinky curled
+  if(T && I && isCurled(12,10) && isCurled(16,14) && isCurled(20,18))
+    return{id:'gun', conf:0.92};
+
+  // CROSSED FINGERS: Index + middle very close / overlapping in X
+  if(I && M && isCurled(16,14) && isCurled(20,18) && !T && IM < 0.03)
+    return{id:'crs', conf:0.87};
+
+  // WAVE: 4 fingers together + thumb, but wrist/hand tilted
+  // Approximation: all extended but hand is tilted (middle tip is to side)
+  if(T && I && M && R && P){
+    const handTilt = Math.abs(L[12].x - L[0].x);
+    if(handTilt > 0.15) return{id:'wav', conf:0.82};
+    return{id:'opn', conf:0.85};
+  }
+
+  // OPEN HAND (relaxed): Multiple fingers extended but not all strict
+  if(!T && I && M && R && P) return{id:'n4', conf:0.88};
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NUMBER FROM GESTURE ID
+// ═══════════════════════════════════════════════════════
+const NUM_IDS = ['n0','n1','n2','n3','n4','n5','n6','n7','n8','n9','n10'];
+function gestureToNumber(id){
+  if(id==='n0') return 0;
+  if(id==='n1') return 1;
+  if(id==='n2') return 2;
+  if(id==='n3') return 3;
+  if(id==='n4') return 4;
+  if(id==='n5') return 5;
+  if(id==='n6') return 6;
+  if(id==='n7') return 7;
+  if(id==='n8') return 8;
+  if(id==='n9') return 9;
+  if(id==='n10' || id==='thu') return 10; // thumbs up = 10 in some systems
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER RESULT
+// ═══════════════════════════════════════════════════════
+function renderResult(L, R){
+  const badge  = document.getElementById('badge');
+  const comb   = document.getElementById('combined');
+  const csub   = document.getElementById('csub');
+  const hrow   = document.getElementById('handsRow');
+  const cf     = document.getElementById('cf');
+  const cp     = document.getElementById('cp');
+
+  // No hands
+  if(!L && !R){
+    badge.className='dual-badge nh';
+    comb.className='combined';comb.textContent='—';
+    csub.textContent='Show your hand to the camera';
+    hrow.style.display='none';
+    cf.style.width='0%';cp.textContent='0%';
+    lastResultKey=null;
+    if(prevChip){document.getElementById('ch-'+prevChip)?.classList.remove('on');prevChip=null;}
+    return;
+  }
+
+  // One hand
+  if(L && !R){
+    showOneHand(L, 'Left', badge, comb, csub, hrow, cf, cp);
+    return;
+  }
+  if(!L && R){
+    showOneHand(R, 'Right', badge, comb, csub, hrow, cf, cp);
+    return;
+  }
+
+  // TWO HANDS — check if both are numbers → combine
+  const lNum = gestureToNumber(L.id);
+  const rNum = gestureToNumber(R.id);
+
+  if(lNum !== null && rNum !== null){
+    // Left = tens, Right = units
+    const combined = lNum===10 && rNum===0 ? 100 : lNum * 10 + rNum;
+    const conf = Math.min(L.conf, R.conf);
+    const key = 'NUM:'+combined;
+
+    badge.className='dual-badge nummode';
+    comb.className='combined num';
+    comb.textContent = combined.toString();
+    csub.textContent = `Left(${lNum}) × 10 + Right(${rNum}) = ${combined}`;
+
+    // Show hand slots
+    hrow.style.display='flex';
+    const lg=byId[L.id]||{emoji:'?',name:L.id};
+    const rg=byId[R.id]||{emoji:'?',name:R.id};
+    document.getElementById('leftEmoji').textContent=lg.emoji;
+    document.getElementById('leftName').textContent=lNum;
+    document.getElementById('rightEmoji').textContent=rg.emoji;
+    document.getElementById('rightName').textContent=rNum;
+
+    const pct=Math.round(conf*100);
+    cf.style.width=pct+'%';cf.style.background='var(--a3)';cf.style.boxShadow='0 0 6px var(--a3)';
+    cp.textContent=pct+'%';
+
+    if(key!==lastResultKey){
+      badge.classList.add('pop');setTimeout(()=>badge.classList.remove('pop'),200);
+      logEntry(`${combined}`, '🔢', `Both hands = ${combined}`, conf);
+      if(combined>st.maxNum){st.maxNum=combined;document.getElementById('sMax').textContent=combined;}
+      lastResultKey=key;
+    }
+    // Clear chip highlights for numbers
+    if(prevChip){document.getElementById('ch-'+prevChip)?.classList.remove('on');prevChip=null;}
+
+  } else {
+    // Two hands but not both numbers — show left hand result
+    const primary = L || R;
+    showOneHand(primary, L?'Left':'Right', badge, comb, csub, hrow, cf, cp);
+    // Also show secondary in slots
+    if(L && R){
+      hrow.style.display='flex';
+      const lg=byId[L.id]||{emoji:'🖐',name:''};
+      const rg=byId[R.id]||{emoji:'🖐',name:''};
+      document.getElementById('leftEmoji').textContent=lg.emoji;
+      document.getElementById('leftName').textContent=lg.name;
+      document.getElementById('rightEmoji').textContent=rg.emoji;
+      document.getElementById('rightName').textContent=rg.name;
+    }
+  }
+}
+
+function showOneHand(det, side, badge, comb, csub, hrow, cf, cp){
+  const g=byId[det.id];
+  if(!g) return;
+  const isNum=NUM_IDS.includes(det.id);
+
+  badge.className='dual-badge'+(isNum?' nummode':'');
+  comb.className='combined'+(isNum?' num':' sign');
+  comb.textContent=g.emoji+' '+g.name.toUpperCase();
+  csub.textContent=g.desc+' · '+side+' hand';
+  hrow.style.display='none';
+
+  const pct=Math.min(99,Math.round(det.conf*100));
+  cf.style.width=pct+'%';
+  cf.style.background=pct>87?'var(--a4)':pct>72?'var(--a)':'var(--a3)';
+  cf.style.boxShadow=`0 0 6px ${pct>87?'var(--a4)':pct>72?'var(--a)':'var(--a3)'}`;
+  cp.textContent=pct+'%';
+
+  const key=det.id+side;
+  if(key!==lastResultKey){
+    badge.classList.add('pop');setTimeout(()=>badge.classList.remove('pop'),200);
+    logEntry(g.name, g.emoji, g.desc, det.conf);
+    updStats(g.id, det.conf);
+    lastResultKey=key;
+    if(prevChip){document.getElementById('ch-'+prevChip)?.classList.remove('on');}
+    document.getElementById('ch-'+det.id)?.classList.add('on');
+    prevChip=det.id;
+  }
+}
+
+function logEntry(name, emoji, desc, conf){
+  const t=new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el=document.createElement('div');el.className='li';
+  el.innerHTML=`<span class="lt">${t}</span><span class="le">${emoji}</span><span class="ln">${name}</span><div class="lbar"><div class="lbf" style="width:${Math.round(conf*100)}%"></div></div><span class="lc">${Math.round(conf*100)}%</span>`;
+  const l=document.getElementById('log');l.insertBefore(el,l.firstChild);
+  while(l.children.length>100)l.removeChild(l.lastChild);
+}
+
+function updStats(id, conf){
+  st.tot++;st.cs+=conf;st.map[id]=(st.map[id]||0)+1;
+  document.getElementById('sTot').textContent=st.tot;
+  const top=Object.entries(st.map).sort((a,b)=>b[1]-a[1])[0];
+  if(top){const tg=byId[top[0]];if(tg)document.getElementById('sCom').textContent=tg.emoji+' '+tg.name;}
+  document.getElementById('sAv').textContent=Math.round(st.cs/st.tot*100)+'%';
+}
+
+function tick(){
+  if(!st.start)return;
+  const e=Math.floor((Date.now()-st.start)/1000);
+  document.getElementById('sTm').textContent=String(Math.floor(e/60)).padStart(2,'0')+':'+String(e%60).padStart(2,'0');
+  setTimeout(tick,1000);
+}
+
+function sw(n,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('p'+n).classList.add('on');
+}
+</script>
+</body>
+</html>
